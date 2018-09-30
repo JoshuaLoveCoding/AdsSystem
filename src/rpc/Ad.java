@@ -37,7 +37,7 @@ public class Ad extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
-	DBConnection conn = DBConnectionFactory.getConnection();
+		DBConnection conn = DBConnectionFactory.getConnection();
 		try {
 			JSONArray array = new JSONArray();
 			JSONObject ad = new JSONObject();
