@@ -37,78 +37,71 @@ public class Ad extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
-		DBConnection connection = DBConnectionFactory.getConnection();
+	DBConnection conn = DBConnectionFactory.getConnection();
 		try {
-			DBConnection conn = DBConnectionFactory.getConnection();
-			
 			JSONArray array = new JSONArray();
 			JSONObject ad = new JSONObject();
 			AdItem adWithHighestRank = null;
 			AdItem adWithSecondHighestRank = null;
-			
-			try {
-// return all ad, their bid > 0
-				List<AdItem> items = conn.searchAdItems();
-				
-				if (items.size() < 2) {
-					return;
-				}
-				
-				// get first two ads
-				AdItem ad0 = items.get(0);
-				AdItem ad1 = items.get(1);
-				
-				float adRank0 = ad0.getAd_score() * ad0.getBid();
-				float adRank1 = ad1.getAd_score() * ad1.getBid();
-				
-				if (adRank0 > adRank1) {
-					adWithHighestRank = ad0;
-					adWithSecondHighestRank = ad1;
-				} else {
-					adWithHighestRank = ad1;
-					adWithSecondHighestRank = ad0;
-				}
-				
-				ad = adWithHighestRank.toJSONObject();
-				
-				for (int i = 2; i < items.size(); i++) {
-					AdItem item = items.get(i);
-					float adRankScore = item.getAd_score() * item.getBid();
-					
-					// compute ad rank and choose highest and second highest one
-					if (adRankScore > adWithHighestRank.getBid() * adWithHighestRank.getAd_score()) {
-adWithSecondHighestRank = adWithHighestRank;
-						adWithHighestRank = item;
-						ad = item.toJSONObject();
-					} else if (adRankScore > adWithSecondHighestRank.getBid() * adWithSecondHighestRank.getAd_score()) {
-						adWithSecondHighestRank = item;
-					}
-				}
-				
-				// calculate cost using second-price bidding
-				double secondHighestAdRankScore = adWithSecondHighestRank.getBid() * adWithSecondHighestRank.getAd_score();
-				double cost = secondHighestAdRankScore / adWithHighestRank.getAd_score() + 0.01;
-				System.out.println("cost is:" + cost);
-				
-				// get current budget
-				int advertiser_id = adWithHighestRank.getAdvertiser_id();
-				double curBudget = conn.getBudget(advertiser_id);
 
-				// update budget
-				conn.updateBudget(advertiser_id, curBudget - cost);
-				curBudget = conn.getBudget(advertiser_id); 
-				array.put(ad);
-			} catch (Exception e) {
-				e.printStackTrace();
-			} finally {
-				conn.close();
+			List<AdItem> items = conn.searchAdItems();
+
+			if (items.size() < 2) {
+				return;
 			}
+
+			// get first two ads
+			AdItem ad0 = items.get(0);
+			AdItem ad1 = items.get(1);
+
+			float adRank0 = ad0.getAd_score() * ad0.getBid();
+			float adRank1 = ad1.getAd_score() * ad1.getBid();
+
+			if (adRank0 > adRank1) {
+				adWithHighestRank = ad0;
+				adWithSecondHighestRank = ad1;
+			} else {
+				adWithHighestRank = ad1;
+				adWithSecondHighestRank = ad0;
+			}
+
+			ad = adWithHighestRank.toJSONObject();
+
+			for (int i = 2; i < items.size(); i++) {
+				AdItem item = items.get(i);
+				float adRankScore = item.getAd_score() * item.getBid();
+
+				// compute ad rank and choose highest and second highest one
+				if (adRankScore > adWithHighestRank.getBid() * adWithHighestRank.getAd_score()) {
+					adWithSecondHighestRank = adWithHighestRank;
+					adWithHighestRank = item;
+					ad = item.toJSONObject();
+				} else if (adRankScore > adWithSecondHighestRank.getBid() * adWithSecondHighestRank.getAd_score()) {
+					adWithSecondHighestRank = item;
+				}
+			}
+
+			// calculate cost using second-price bidding
+			double secondHighestAdRankScore = adWithSecondHighestRank.getBid() * adWithSecondHighestRank.getAd_score();
+			double cost = secondHighestAdRankScore / adWithHighestRank.getAd_score() + 0.01;
+			System.out.println("cost is:" + cost);
 			
+			// get current budget
+			int advertiser_id = adWithHighestRank.getAdvertiser_id();
+			double curBudget = conn.getBudget(advertiser_id);
+
+			// update budget
+			conn.updateBudget(advertiser_id, curBudget - cost);
+			curBudget = conn.getBudget(advertiser_id); 
+			array.put(ad);
 			RpcHelper.writeJsonArray(response, array);
 			System.out.println("successful");
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
-			connection.close();
+			conn.close();
 		}
+
 	}
 
 	/**
